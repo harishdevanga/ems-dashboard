@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from io import BytesIO
+import plotly.graph_objects as go
 
 
 # Set page title and title of the app
@@ -11,8 +12,8 @@ st.markdown('<style>div.block-container{padding-top:1rem;}<style>',unsafe_allow_
 
 
 # File uploader
-uploaded_file = st.file_uploader(":file_folder: Choose a file", type=["csv", "txt", "xlsx", "xls"])
-
+uploaded_file = st.file_uploader(":file_folder: Choose Excel file", type=["csv", "txt", "xlsx", "xls"])
+# st.write("If you have mapped Gdrive to PC follow the path to select Excel file <EMS Quality - FPY Improvement Pojects.xlsx>  :- Shared drives\EMS Quality\BFIH First Pass Yield Improvement")
 
 # If a file is uploaded
 if uploaded_file is not None:
@@ -84,11 +85,6 @@ if uploaded_file is not None:
             if st.checkbox("View ICT Data"):
                 transposed_ict_data = ict_data[['Month', 'First Pass Yield %']].T
                 st.write(transposed_ict_data)
-                xlsx_ict_data = to_excel(ict_data[['Month', 'First Pass Yield %']])
-                st.download_button(label='📥 Download ICT Data as XLSX',
-                                   data=xlsx_ict_data,
-                                   file_name='ict_data.xlsx')
-
 
     # Plot bar chart for FCT
     with col4:
@@ -105,10 +101,7 @@ if uploaded_file is not None:
             if st.checkbox("View FCT Data"):
                 transposed_fct_data = fct_data[['Month', 'First Pass Yield %']].T
                 st.write(transposed_fct_data)
-                xlsx_fct_data = to_excel(fct_data[['Month', 'First Pass Yield %']])
-                st.download_button(label='📥 Download FCT Data as XLSX',
-                                   data=xlsx_fct_data,
-                                   file_name='fct_data.xlsx')
+
 
 
     # Create columns for EOL and CAL bar charts
@@ -130,10 +123,7 @@ if uploaded_file is not None:
             if st.checkbox("View EOL Data"):
                 transposed_eol_data = eol_data[['Month', 'First Pass Yield %']].T
                 st.write(transposed_eol_data)
-                xlsx_eol_data = to_excel(eol_data[['Month', 'First Pass Yield %']])
-                st.download_button(label='📥 Download EOL Data as XLSX',
-                                   data=xlsx_eol_data,
-                                   file_name='eol_data.xlsx')
+
 
 
     # Plot bar chart for CAL
@@ -151,17 +141,8 @@ if uploaded_file is not None:
             if st.checkbox("View CAL Data"):
                 transposed_cal_data = cal_data[['Month', 'First Pass Yield %']].T
                 st.write(transposed_cal_data)
-                xlsx_cal_data = to_excel(cal_data[['Month', 'First Pass Yield %']])
-                st.download_button(label='📥 Download CAL Data as XLSX',
-                                   data=xlsx_cal_data,
-                                   file_name='cal_data.xlsx')
 
 
-    # Create time series analysis chart
-    st.subheader("Time Series Analysis")
-    time_series_chart = px.line(filtered_data, x='Month', y='First Pass Yield %', color='Testing Stage', title='First Pass Yield % Over Time')
-    time_series_chart.update_layout(xaxis=dict(tickangle=45))
-    st.plotly_chart(time_series_chart)
 
 
     # Provide option to view and download data
@@ -173,49 +154,133 @@ if uploaded_file is not None:
         st.write(transposed_data)
 
 
-        # Provide option to download data as XLSX
-        xlsx_data = to_excel(filtered_data[['Month', 'First Pass Yield %']])
-        st.download_button(label='📥 Download Current Data as XLSX',
-                           data=xlsx_data,
-                           file_name='time_series_data.xlsx')
-       
-
-
     import plotly.figure_factory as ff
     st.subheader(":point_right: Month wise Yield Summary")
-    with st.expander("Summary_Table"):
-        # df_sample = filtered_data[0:10][["Product","Month","Testing Stage","First Pass Yield %","Overall Fail %","Retest Pass %"]]
-        # fig = ff.create_table(df_sample, colorscale="Cividis")
-        # st.plotly_chart(fig, use_container_width=True)
+    # with st.expander("Summary_Table"):
+    st.write("Summary_Table")
+    def color_fpy(val):
+        if pd.isna(val):  # Check if the value is NaN (empty cell)
+            return ""  # Return an empty string for system default styling
+        color = "orange" if val < 0.90 else "#00ff00" if val >= 0.98 else "yellow" # 00ff00 is for light Green color to match the Monthly_FPY_Summary table
+        return f'background-color: {color}; color: black'  # Add 'color: black' to set text color
 
+    filtered_data['Month'] = pd.to_datetime(filtered_data['Month'], format='%Y-%m').dt.strftime('%b %Y')
+    monthly_fpy_summary = pd.pivot_table(data = filtered_data, values= "First Pass Yield %", index= ["Product","Testing Stage"], columns= "Month")
+    st.write(monthly_fpy_summary.style.applymap(color_fpy))
+    
+    
+    #Add Pie chart to display FPY%, Retest Pass%, Real Fail%
+    # st.subheader("Product Quality Metrics")
+    pie1, pie2 = st.columns(2)
+    with pie1:        
+        st.write("ICT Yield Distribution")
+        ict_data = filtered_data[filtered_data['Testing Stage'] == 'ICT']
+        if not ict_data.empty:
+            # Aggregate data for pie chart
+            aggregated_data = {
+                "Metric": ["First Pass Yield %", "Retest Pass %", "Real Fail %"],
+                "Value": [
+                    ict_data["First Pass Yield %"].mean(),
+                    ict_data["Retest Pass %"].mean(),
+                    ict_data["Real Fail %"].mean()
+                ]
+            }
+            # Create aggregated DataFrame
+            agg_df = pd.DataFrame(aggregated_data)            
+            # fig = px.pie(agg_df, values= "Value", names= "Metric", hole = 0.5, template= "plotly_dark", pull=[0, 0, 0.2])
+            fig = go.Figure(
+                data=[go.Pie(
+                    labels=agg_df["Metric"], 
+                    values=agg_df["Value"], 
+                    hole=0.5,  # Set the hole size for the pie chart
+                    pull=[0, 0.2, 0.2]  # Pull sectors for "Retest Pass %" and "Real Fail %"
+                )]
+            )
+            fig.update_traces(textposition = "outside")
+            st.plotly_chart(fig, use_container_width=True)
 
-        st.markdown("Month wise FPY Summary")
-        # filtered_data['Month'] = pd.to_datetime(filtered_data['Month'], format='%Y-%m').dt.strftime('%b %Y')
-        # monthly_fpy_summary = pd.pivot_table(data = filtered_data, values= "First Pass Yield %", index= ["Product","Testing Stage"], columns= "Month")
-        # st.write(monthly_fpy_summary.style.background_gradient(cmap="Blues"))
-        
-        # def color_fpy(val):
-        #     color = "red" if val <0.90 else "green" if val >=0.98 else "orange"
-        #     return f'background-color: {color}'
-        
-        # def color_fpy(val):
-        #     color = "red" if val < 0.90 else "green" if val >= 0.98 else "orange"
-        #     return f'background-color: {color}; color: black'  # Add 'color: black' to set text color
+    with pie2:        
+        st.write("FCT Yield Distribution")
+        fct_data = filtered_data[filtered_data['Testing Stage'] == 'FCT']
+        if not fct_data.empty:
+            # Aggregate data for pie chart
+            aggregated_data = {
+                "Metric": ["First Pass Yield %", "Retest Pass %", "Real Fail %"],
+                "Value": [
+                    fct_data["First Pass Yield %"].mean(),
+                    fct_data["Retest Pass %"].mean(),
+                    fct_data["Real Fail %"].mean()
+                ]
+            }
+            # Create aggregated DataFrame
+            agg_df = pd.DataFrame(aggregated_data)            
+            # fig = px.pie(agg_df, values= "Value", names= "Metric", hole = 0.5, template= "plotly_dark", title="FCT Yield Distribution")
+            fig = go.Figure(
+                data=[go.Pie(
+                    labels=agg_df["Metric"], 
+                    values=agg_df["Value"], 
+                    hole=0.5,  # Set the hole size for the pie chart
+                    pull=[0, 0.2, 0.2]  # Pull sectors for "Retest Pass %" and "Real Fail %"
+                )]
+            )
+            fig.update_traces(textposition = "outside")
+            st.plotly_chart(fig, use_container_width=True)
+    
+    pie3, pie4 = st.columns(2)
+    with pie3:
+        st.write("EOL Yield Distribution")
+        eol_data = filtered_data[filtered_data['Testing Stage'] == 'EOL']
+        if not eol_data.empty:
+            # Aggregate data for pie chart
+            aggregated_data = {
+                "Metric": ["First Pass Yield %", "Retest Pass %", "Real Fail %"],
+                "Value": [
+                    eol_data["First Pass Yield %"].mean(),
+                    eol_data["Retest Pass %"].mean(),
+                    eol_data["Real Fail %"].mean()
+                ]
+            }
+            # Create aggregated DataFrame
+            agg_df = pd.DataFrame(aggregated_data)            
+            # fig = px.pie(agg_df, values= "Value", names= "Metric", hole = 0.5, template= "plotly_dark")
+            fig = go.Figure(
+                data=[go.Pie(
+                    labels=agg_df["Metric"], 
+                    values=agg_df["Value"], 
+                    hole=0.5,  # Set the hole size for the pie chart
+                    pull=[0, 0.2, 0.2]  # Pull sectors for "Retest Pass %" and "Real Fail %"
+                )]
+            )
+            fig.update_traces(textposition = "outside")
+            st.plotly_chart(fig, use_container_width=True)
 
-        # color_fpy function to set the backgroud color of pivot table monthly_fpy_summary
-        def color_fpy(val):
-            if pd.isna(val):  # Check if the value is NaN (empty cell)
-                return ""  # Return an empty string for system default styling
-            color = "orange" if val < 0.90 else "#00ff00" if val >= 0.98 else "yellow" # 00ff00 is for light Green color to match the Monthly_FPY_Summary table
-            return f'background-color: {color}; color: black'  # Add 'color: black' to set text color
-
-        filtered_data['Month'] = pd.to_datetime(filtered_data['Month'], format='%Y-%m').dt.strftime('%b %Y')
-        monthly_fpy_summary = pd.pivot_table(data = filtered_data, values= "First Pass Yield %", index= ["Product","Testing Stage"], columns= "Month")
-        st.write(monthly_fpy_summary.style.applymap(color_fpy))
-        # st.write(monthly_fpy_summary, unsafe_allow_html=True)
-        # st.markdown(monthly_fpy_summary, unsafe_allow_html=True)
-
-
+    with pie4:
+        st.write("CAL Yield Distribution")
+        cal_data = filtered_data[filtered_data['Testing Stage'] == 'CAL']
+        if not cal_data.empty:
+            # Aggregate data for pie chart
+            aggregated_data = {
+                "Metric": ["First Pass Yield %", "Retest Pass %", "Real Fail %"],
+                "Value": [
+                    cal_data["First Pass Yield %"].mean(),
+                    cal_data["Retest Pass %"].mean(),
+                    cal_data["Real Fail %"].mean()
+                ]
+            }
+            # Create aggregated DataFrame
+            agg_df = pd.DataFrame(aggregated_data)            
+            # fig = px.pie(agg_df, values= "Value", names= "Metric", hole = 0.5, template= "plotly_dark")
+            fig = go.Figure(
+                data=[go.Pie(
+                    labels=agg_df["Metric"], 
+                    values=agg_df["Value"], 
+                    hole=0.5,  # Set the hole size for the pie chart
+                    pull=[0, 0.2, 0.2]  # Pull sectors for "Retest Pass %" and "Real Fail %"
+                )]
+            )
+            fig.update_traces(textposition = "outside")
+            st.plotly_chart(fig, use_container_width=True)
+                      
     # Create a tree based on Region, Category, Sub-Category
     st.subheader("Hierarchical view of Yield") # using TreeMap
     fig3 = px.treemap(filtered_data, path= ["Product","Testing Stage", "Month","First Pass Yield %"], values="Number of Units tested",
@@ -226,16 +291,3 @@ if uploaded_file is not None:
 
 else:
     st.info("Please upload a file to get started")
-
-
-
-
-# In this trial all the combination worked along with
-# a option to view data of trime series in Tranposed manner and
-# option to download in excel.
-# The download option is given for col3-6
-# update the date format to MMM-YYYY in the "Month wise FPY Summary" table
-# derived from trial13 code clean up
-# added Tree map for viewing
-# changed the Y2 axis format to decimal to % format
-# added a - color_fpy function to set the backgroud color of pivot table monthly_fpy_summary
