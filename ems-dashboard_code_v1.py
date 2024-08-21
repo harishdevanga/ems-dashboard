@@ -75,7 +75,7 @@ if uploaded_file is not None:
         ict_data = filtered_data[filtered_data['Testing Stage'] == 'ICT']
         if not ict_data.empty:
             st.write("ICT")
-            fig = px.bar(ict_data, x='Month', y='Number of Units tested', title="ICT - Number of Units tested and First Pass Yield %")
+            fig = px.bar(ict_data, x='Month', y='Number of Units tested')
             fig.add_scatter(x=ict_data['Month'], y=ict_data['First Pass Yield %'], mode='lines+markers', name='First Pass Yield %', yaxis="y2")
             # fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right'))
             fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right', tickformat='.0%')) 
@@ -91,7 +91,7 @@ if uploaded_file is not None:
         fct_data = filtered_data[filtered_data['Testing Stage'] == 'FCT']
         if not fct_data.empty:
             st.write("FCT")
-            fig = px.bar(fct_data, x='Month', y='Number of Units tested', title="FCT - Number of Units tested and First Pass Yield %")
+            fig = px.bar(fct_data, x='Month', y='Number of Units tested')
             fig.add_scatter(x=fct_data['Month'], y=fct_data['First Pass Yield %'], mode='lines+markers', name='First Pass Yield %', yaxis="y2")
             # fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right'))
             fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right', tickformat='.0%')) 
@@ -113,7 +113,7 @@ if uploaded_file is not None:
         eol_data = filtered_data[filtered_data['Testing Stage'] == 'EOL']
         if not eol_data.empty:
             st.write("EOL")
-            fig = px.bar(eol_data, x='Month', y='Number of Units tested', title="EOL - Number of Units tested and First Pass Yield %")
+            fig = px.bar(eol_data, x='Month', y='Number of Units tested')
             fig.add_scatter(x=eol_data['Month'], y=eol_data['First Pass Yield %'], mode='lines+markers', name='First Pass Yield %', yaxis="y2")
             # fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right'))
             fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right', tickformat='.0%')) 
@@ -131,7 +131,7 @@ if uploaded_file is not None:
         cal_data = filtered_data[filtered_data['Testing Stage'] == 'CAL']
         if not cal_data.empty:
             st.write("CAL")
-            fig = px.bar(cal_data, x='Month', y='Number of Units tested', title="CAL - Number of Units tested and First Pass Yield %")
+            fig = px.bar(cal_data, x='Month', y='Number of Units tested')
             fig.add_scatter(x=cal_data['Month'], y=cal_data['First Pass Yield %'], mode='lines+markers', name='First Pass Yield %', yaxis="y2")
             # fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right'))
             fig.update_layout(yaxis2=dict(title='First Pass Yield %', overlaying='y', side='right', tickformat='.0%')) 
@@ -145,15 +145,7 @@ if uploaded_file is not None:
 
 
 
-    # Provide option to view and download data
-    if st.checkbox("View Data of TimeSeries"):
-        # filtered_data['Month'] = pd.to_datetime(filtered_data['Month'], format='%Y-%m').dt.strftime('%b %Y')
-        filtered_data['Formatted Month'] = pd.to_datetime(filtered_data['Month']).dt.strftime('%b %Y')
-        # transposed_data = filtered_data[['Month', 'First Pass Yield %']].T
-        transposed_data = filtered_data[['Formatted Month', 'First Pass Yield %']].T
-        st.write(transposed_data)
-
-
+    
     import plotly.figure_factory as ff
     st.subheader(":point_right: Month wise Yield Summary")
     # with st.expander("Summary_Table"):
@@ -168,7 +160,8 @@ if uploaded_file is not None:
     monthly_fpy_summary = pd.pivot_table(data = filtered_data, values= "First Pass Yield %", index= ["Product","Testing Stage"], columns= "Month")
     st.write(monthly_fpy_summary.style.applymap(color_fpy))
     
-    
+    st.subheader("Testing Stage Wise Yield Distribution")
+
     #Add Pie chart to display FPY%, Retest Pass%, Real Fail%
     # st.subheader("Product Quality Metrics")
     pie1, pie2 = st.columns(2)
