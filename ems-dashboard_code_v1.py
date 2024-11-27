@@ -7,6 +7,7 @@ import plotly.graph_objects as go
 
 # Set page title and title of the app
 st.set_page_config(page_title='EMS Dashboard!!!', page_icon=":bar_chart:", layout="wide")
+
 st.title(':bar_chart: EMS QUALITY DASHBOARD ')
 st.markdown('<style>div.block-container{padding-top:1rem;}<style>',unsafe_allow_html=True)
 
